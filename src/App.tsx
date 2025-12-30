@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { init, backButton, viewport, cloudStorage } from '@tma.js/sdk';
 import { useNavigation } from './hooks/useNavigation';
 import { useTasks } from './hooks/useTasks';
@@ -11,19 +11,31 @@ import './App.css';
 
 function AppContent() {
   const navigation = useNavigation();
-  const { createTask } = useTasks(cloudStorage);
   const [navigationDirection, setNavigationDirection] = useState<'forward' | 'backward'>('forward');
   const [previousScreen, setPreviousScreen] = useState<Screen>('taskList');
   const [taskFormStep, setTaskFormStep] = useState(1);
+  const [storageInstance, setStorageInstance] = useState<typeof cloudStorage | null>(null);
 
-  // Инициализация SDK единожды
+  // Инициализация SDK и проверка CloudStorage
   useEffect(() => {
     try {
       init();
+      
+      // Проверяем доступность CloudStorage
+      if (cloudStorage) {
+        console.log('CloudStorage initialized successfully');
+        setStorageInstance(cloudStorage);
+      } else {
+        console.warn('CloudStorage is not available. Tasks will not be saved.');
+        setStorageInstance(null);
+      }
     } catch (error) {
       console.error('Failed to init TMA SDK', error);
+      setStorageInstance(null);
     }
   }, []);
+
+  const { createTask } = useTasks(storageInstance);
 
   // Получаем safe area insets из viewport (учитывает системные элементы Telegram)
   // Адаптируется для обоих режимов: fullscreen и partial
@@ -135,19 +147,6 @@ function AppContent() {
     navigation.goBack();
   }, [navigation]);
 
-  // Используем ref для хранения актуальных значений
-  const navigationRef = useRef(navigation);
-  const taskFormStepRef = useRef(taskFormStep);
-  
-  // Обновляем refs при изменении
-  useEffect(() => {
-    navigationRef.current = navigation;
-  }, [navigation]);
-  
-  useEffect(() => {
-    taskFormStepRef.current = taskFormStep;
-  }, [taskFormStep]);
-
   // Управление системной BackButton Telegram
   useEffect(() => {
     const currentScreen = navigation.currentScreen;
@@ -158,32 +157,24 @@ function AppContent() {
         backButton.show();
         
         const handleBackClick = () => {
-          // Используем актуальные значения из refs
-          const screen = navigationRef.current.currentScreen;
-          const step = taskFormStepRef.current;
-          
-          if (screen === 'taskCreate') {
+          if (currentScreen === 'taskCreate') {
             // Если на экране создания задачи, обрабатываем шаги формы
-            if (step > 1) {
+            if (taskFormStep > 1) {
               // Возвращаемся на предыдущий шаг
-              setTaskFormStep(step - 1);
+              setTaskFormStep(taskFormStep - 1);
             } else {
               // На первом шаге - закрываем форму
-              navigationRef.current.goBack();
+              navigation.goBack();
             }
           } else {
             // Для других экранов - просто возвращаемся назад
-            navigationRef.current.goBack();
+            navigation.goBack();
           }
         };
         
         const unsubscribe = backButton.onClick(handleBackClick);
         return () => {
           unsubscribe();
-          // Проверяем актуальный экран при очистке
-          if (navigationRef.current.currentScreen === 'taskList') {
-            backButton.hide();
-          }
         };
       } catch (error) {
         console.warn('BackButton not available:', error);
@@ -197,7 +188,7 @@ function AppContent() {
         console.warn('BackButton not available:', error);
       }
     }
-  }, [navigation.currentScreen, taskFormStep]);
+  }, [navigation, taskFormStep]);
 
   return (
     <div className="app">
@@ -243,10 +234,6 @@ function AppContent() {
 }
 
 function App() {
-  useEffect(() => {
-    init();
-  }, []);
-
   return <AppContent />;
 }
 

@@ -61,7 +61,7 @@ export function useTasks(cloudStorageInstance?: CloudStorage | null) {
     }
     
     return newTask;
-  }, []);
+  }, [cloudStorageInstance]);
 
   // Обновление задачи - используем функциональное обновление
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
@@ -86,7 +86,7 @@ export function useTasks(cloudStorageInstance?: CloudStorage | null) {
     } catch (error) {
       console.error('Failed to save tasks after update:', error);
     }
-  }, []);
+  }, [cloudStorageInstance]);
 
   // Удаление задачи - используем функциональное обновление
   const deleteTask = useCallback(async (id: string) => {
@@ -107,7 +107,7 @@ export function useTasks(cloudStorageInstance?: CloudStorage | null) {
     } catch (error) {
       console.error('Failed to save tasks after deletion:', error);
     }
-  }, []);
+  }, [cloudStorageInstance]);
 
   // Переключение статуса задачи
   const toggleTaskStatus = useCallback(async (id: string) => {
@@ -140,7 +140,7 @@ export function useTasks(cloudStorageInstance?: CloudStorage | null) {
         // Можно добавить откат состояния при ошибке
       }
     }
-  }, []);
+  }, [cloudStorageInstance]);
 
   // Фильтрация и сортировка задач
   const filteredAndSortedTasks = tasks
