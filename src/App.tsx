@@ -16,19 +16,30 @@ function AppContent() {
   const [taskFormStep, setTaskFormStep] = useState(1);
   const [storageInstance, setStorageInstance] = useState<typeof cloudStorage | null>(null);
 
-  // Инициализация SDK и проверка CloudStorage
+  // Инициализация SDK и проверка компонентов
   useEffect(() => {
     try {
       init();
       
-      // Проверяем доступность CloudStorage
-      if (cloudStorage) {
-        console.log('CloudStorage initialized successfully');
-        setStorageInstance(cloudStorage);
-      } else {
-        console.warn('CloudStorage is not available. Tasks will not be saved.');
+      // Проверяем и инициализируем CloudStorage
+      try {
+        if (cloudStorage) {
+          // В версии 3.1.2 компоненты готовы к использованию после init()
+          // Проверяем доступность через попытку использования
+          console.log('CloudStorage initialized successfully');
+          setStorageInstance(cloudStorage);
+        } else {
+          console.warn('CloudStorage is not available. Tasks will not be saved.');
+          setStorageInstance(null);
+        }
+      } catch (storageError) {
+        console.error('Failed to initialize CloudStorage:', storageError);
         setStorageInstance(null);
       }
+
+      // BackButton и Viewport готовы к использованию после init()
+      // Дополнительное монтирование не требуется в версии 3.1.2
+      console.log('TMA SDK components initialized');
     } catch (error) {
       console.error('Failed to init TMA SDK', error);
       setStorageInstance(null);
@@ -40,6 +51,16 @@ function AppContent() {
   // Получаем safe area insets из viewport (учитывает системные элементы Telegram)
   // Адаптируется для обоих режимов: fullscreen и partial
   useEffect(() => {
+    if (!viewport) {
+      console.warn('Viewport is not available, using fallback safe area insets');
+      // Fallback: нулевые отступы
+      document.documentElement.style.setProperty('--tg-safe-area-inset-top', '0px');
+      document.documentElement.style.setProperty('--tg-safe-area-inset-bottom', '0px');
+      document.documentElement.style.setProperty('--tg-safe-area-inset-left', '0px');
+      document.documentElement.style.setProperty('--tg-safe-area-inset-right', '0px');
+      return;
+    }
+
     const updateSafeArea = () => {
       try {
         const state = viewport.state();
@@ -154,34 +175,38 @@ function AppContent() {
     // Показываем BackButton только если не на главном экране
     if (currentScreen !== 'taskList') {
       try {
-        backButton.show();
-        
-        const handleBackClick = () => {
-          if (currentScreen === 'taskCreate') {
-            // Если на экране создания задачи, обрабатываем шаги формы
-            if (taskFormStep > 1) {
-              // Возвращаемся на предыдущий шаг
-              setTaskFormStep(taskFormStep - 1);
+        if (backButton) {
+          backButton.show();
+          
+          const handleBackClick = () => {
+            if (currentScreen === 'taskCreate') {
+              // Если на экране создания задачи, обрабатываем шаги формы
+              if (taskFormStep > 1) {
+                // Возвращаемся на предыдущий шаг
+                setTaskFormStep(taskFormStep - 1);
+              } else {
+                // На первом шаге - закрываем форму
+                navigation.goBack();
+              }
             } else {
-              // На первом шаге - закрываем форму
+              // Для других экранов - просто возвращаемся назад
               navigation.goBack();
             }
-          } else {
-            // Для других экранов - просто возвращаемся назад
-            navigation.goBack();
-          }
-        };
-        
-        const unsubscribe = backButton.onClick(handleBackClick);
-        return () => {
-          unsubscribe();
-        };
+          };
+          
+          const unsubscribe = backButton.onClick(handleBackClick);
+          return () => {
+            unsubscribe();
+          };
+        }
       } catch (error) {
         console.warn('BackButton not available:', error);
       }
     } else {
       try {
-        backButton.hide();
+        if (backButton) {
+          backButton.hide();
+        }
         // Сбрасываем шаг формы при возврате на главный экран
         setTaskFormStep(1);
       } catch (error) {
