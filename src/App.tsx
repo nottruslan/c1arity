@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { init } from '@tma.js/sdk';
+import { init, viewport } from '@tma.js/sdk';
 import { useNavigation } from './hooks/useNavigation';
 import { useTasks } from './hooks/useTasks';
 import { SlideContainer } from './components/SlideContainer';
@@ -14,6 +14,39 @@ function AppContent() {
   const { createTask } = useTasks();
   const [navigationDirection, setNavigationDirection] = useState<'forward' | 'backward'>('forward');
   const [previousScreen, setPreviousScreen] = useState<Screen>('taskList');
+
+  // Получаем safe area insets из viewport (учитывает системные элементы Telegram)
+  useEffect(() => {
+    const updateSafeArea = () => {
+      try {
+        const state = viewport.state();
+        if (state && state.contentSafeAreaInsets) {
+          // Используем contentSafeAreaInsets, который учитывает header и MainButton Telegram
+          const insets = state.contentSafeAreaInsets;
+          
+          // Применяем CSS-переменные для использования в CSS
+          document.documentElement.style.setProperty('--tg-safe-area-inset-top', `${insets.top || 0}px`);
+          document.documentElement.style.setProperty('--tg-safe-area-inset-bottom', `${insets.bottom || 0}px`);
+          document.documentElement.style.setProperty('--tg-safe-area-inset-left', `${insets.left || 0}px`);
+          document.documentElement.style.setProperty('--tg-safe-area-inset-right', `${insets.right || 0}px`);
+        }
+      } catch (error) {
+        console.warn('Viewport not available:', error);
+      }
+    };
+
+    updateSafeArea();
+    
+    // Подписываемся на изменения safe area через подписку на state
+    try {
+      const unsubscribe = viewport.state.sub(updateSafeArea);
+      return () => {
+        unsubscribe();
+      };
+    } catch (error) {
+      console.warn('Viewport events not available:', error);
+    }
+  }, []);
 
   // Отслеживание направления навигации
   useEffect(() => {
