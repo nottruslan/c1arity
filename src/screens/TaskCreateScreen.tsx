@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TaskForm } from '../components/TaskForm';
+import { useTMA } from '../contexts/TMAContext';
 import type { TaskPriority } from '../types/task';
 import './TaskCreateScreen.css';
 
@@ -16,6 +17,7 @@ interface TaskCreateScreenProps {
 }
 
 export function TaskCreateScreen({ onSave, onCancel, onStepChange, currentStep }: TaskCreateScreenProps) {
+  const { popup } = useTMA();
   // Используем key для полного сброса формы при каждом открытии
   const [formKey, setFormKey] = useState(0);
 
@@ -34,7 +36,16 @@ export function TaskCreateScreen({ onSave, onCancel, onStepChange, currentStep }
       await onSave(data);
     } catch (error) {
       console.error('Failed to save task:', error);
-      alert('Не удалось сохранить задачу. Попробуйте еще раз.');
+      if (popup) {
+        popup.open({
+          title: 'Ошибка',
+          message: 'Не удалось сохранить задачу. Попробуйте еще раз.',
+          buttons: [{ type: 'ok' }],
+        });
+      } else {
+        // Fallback для случаев когда popup недоступен
+        alert('Не удалось сохранить задачу. Попробуйте еще раз.');
+      }
     }
   };
 

@@ -1,4 +1,5 @@
 import { useTasks } from '../hooks/useTasks';
+import { useTMA } from '../contexts/TMAContext';
 import './TaskDetailScreen.css';
 
 interface TaskDetailScreenProps {
@@ -8,7 +9,8 @@ interface TaskDetailScreenProps {
 }
 
 export function TaskDetailScreen({ taskId, onBack, onEdit }: TaskDetailScreenProps) {
-  const { allTasks, deleteTask, toggleTaskStatus } = useTasks();
+  const { cloudStorage, popup, hapticFeedback } = useTMA();
+  const { allTasks, deleteTask, toggleTaskStatus } = useTasks(cloudStorage);
   const task = allTasks.find((t) => t.id === taskId);
 
   if (!task) {
@@ -42,13 +44,35 @@ export function TaskDetailScreen({ taskId, onBack, onEdit }: TaskDetailScreenPro
   };
 
   const handleDelete = async () => {
-    if (confirm('Вы уверены, что хотите удалить эту задачу?')) {
-      await deleteTask(taskId);
-      onBack();
+    if (popup) {
+      popup.open({
+        title: 'Подтверждение',
+        message: 'Вы уверены, что хотите удалить эту задачу?',
+        buttons: [
+          { type: 'cancel' },
+          {
+            type: 'ok',
+            text: 'Удалить',
+            onClick: async () => {
+              await deleteTask(taskId);
+              onBack();
+            },
+          },
+        ],
+      });
+    } else {
+      // Fallback для случаев когда popup недоступен
+      if (confirm('Вы уверены, что хотите удалить эту задачу?')) {
+        await deleteTask(taskId);
+        onBack();
+      }
     }
   };
 
   const handleToggleStatus = async () => {
+    if (hapticFeedback) {
+      hapticFeedback.impactOccurred('medium');
+    }
     await toggleTaskStatus(taskId);
   };
 
@@ -56,7 +80,15 @@ export function TaskDetailScreen({ taskId, onBack, onEdit }: TaskDetailScreenPro
     <div className="task-detail-screen">
       <div className="task-detail-header">
         <h2 className="task-detail-title">Детали задачи</h2>
-        <button className="task-detail-edit-button" onClick={onEdit}>
+        <button 
+          className="task-detail-edit-button" 
+          onClick={() => {
+            if (hapticFeedback) {
+              hapticFeedback.impactOccurred('light');
+            }
+            onEdit();
+          }}
+        >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path
               d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
@@ -141,7 +173,12 @@ export function TaskDetailScreen({ taskId, onBack, onEdit }: TaskDetailScreenPro
       <div className="task-detail-footer">
         <button
           className="task-detail-action-button task-detail-action-button-danger"
-          onClick={handleDelete}
+          onClick={() => {
+            if (hapticFeedback) {
+              hapticFeedback.impactOccurred('heavy');
+            }
+            handleDelete();
+          }}
         >
           Удалить задачу
         </button>

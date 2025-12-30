@@ -1,4 +1,5 @@
 import { useTasks } from '../hooks/useTasks';
+import { useTMA } from '../contexts/TMAContext';
 import { TaskCard } from '../components/TaskCard';
 import { FilterBar } from '../components/FilterBar';
 import './TaskListScreen.css';
@@ -9,13 +10,21 @@ interface TaskListScreenProps {
 }
 
 export function TaskListScreen({ onCreateTask, onTaskClick }: TaskListScreenProps) {
+  const { cloudStorage, hapticFeedback } = useTMA();
+  
+  const handleCreateTask = () => {
+    if (hapticFeedback) {
+      hapticFeedback.impactOccurred('medium');
+    }
+    onCreateTask();
+  };
   const {
     tasks,
     loading,
     filters,
     setFilters,
     toggleTaskStatus,
-  } = useTasks();
+  } = useTasks(cloudStorage);
 
   if (loading) {
     return (
@@ -29,7 +38,7 @@ export function TaskListScreen({ onCreateTask, onTaskClick }: TaskListScreenProp
     <div className="task-list-screen">
       <div className="task-list-header">
         <h1 className="task-list-title">Задачи</h1>
-        <button className="create-task-button" onClick={onCreateTask}>
+        <button className="create-task-button" onClick={handleCreateTask}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path
               d="M12 5V19M5 12H19"
@@ -57,8 +66,18 @@ export function TaskListScreen({ onCreateTask, onTaskClick }: TaskListScreenProp
               <TaskCard
                 key={task.id}
                 task={task}
-                onClick={() => onTaskClick(task.id)}
-                onToggleStatus={() => toggleTaskStatus(task.id)}
+                onClick={() => {
+                  if (hapticFeedback) {
+                    hapticFeedback.impactOccurred('light');
+                  }
+                  onTaskClick(task.id);
+                }}
+                onToggleStatus={() => {
+                  if (hapticFeedback) {
+                    hapticFeedback.impactOccurred('medium');
+                  }
+                  toggleTaskStatus(task.id);
+                }}
               />
             ))}
           </div>

@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { init, backButton, viewport, cloudStorage } from '@tma.js/sdk';
+import { backButton, viewport } from '@tma.js/sdk';
 import { useNavigation } from './hooks/useNavigation';
 import { useTasks } from './hooks/useTasks';
+import { useTMA } from './contexts/TMAContext';
 import { SlideContainer } from './components/SlideContainer';
 import { TaskListScreen } from './screens/TaskListScreen';
 import { TaskCreateScreen } from './screens/TaskCreateScreen';
@@ -11,42 +12,12 @@ import './App.css';
 
 function AppContent() {
   const navigation = useNavigation();
+  const { cloudStorage } = useTMA();
   const [navigationDirection, setNavigationDirection] = useState<'forward' | 'backward'>('forward');
   const [previousScreen, setPreviousScreen] = useState<Screen>('taskList');
   const [taskFormStep, setTaskFormStep] = useState(1);
-  const [storageInstance, setStorageInstance] = useState<typeof cloudStorage | null>(null);
 
-  // Инициализация SDK и проверка компонентов
-  useEffect(() => {
-    try {
-      init();
-      
-      // Проверяем и инициализируем CloudStorage
-      try {
-        if (cloudStorage) {
-          // В версии 3.1.2 компоненты готовы к использованию после init()
-          // Проверяем доступность через попытку использования
-          console.log('CloudStorage initialized successfully');
-          setStorageInstance(cloudStorage);
-        } else {
-          console.warn('CloudStorage is not available. Tasks will not be saved.');
-          setStorageInstance(null);
-        }
-      } catch (storageError) {
-        console.error('Failed to initialize CloudStorage:', storageError);
-        setStorageInstance(null);
-      }
-
-      // BackButton и Viewport готовы к использованию после init()
-      // Дополнительное монтирование не требуется в версии 3.1.2
-      console.log('TMA SDK components initialized');
-    } catch (error) {
-      console.error('Failed to init TMA SDK', error);
-      setStorageInstance(null);
-    }
-  }, []);
-
-  const { createTask } = useTasks(storageInstance);
+  const { createTask } = useTasks(cloudStorage);
 
   // Получаем safe area insets из viewport (учитывает системные элементы Telegram)
   // Адаптируется для обоих режимов: fullscreen и partial
@@ -258,8 +229,14 @@ function AppContent() {
   );
 }
 
+import { TMAProvider } from './contexts/TMAContext';
+
 function App() {
-  return <AppContent />;
+  return (
+    <TMAProvider>
+      <AppContent />
+    </TMAProvider>
+  );
 }
 
 export default App;

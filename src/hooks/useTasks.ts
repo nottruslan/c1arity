@@ -35,7 +35,7 @@ export function useTasks(cloudStorageInstance?: CloudStorage | null) {
     
     const newTask: Task = {
       ...taskData,
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 11),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -67,11 +67,15 @@ export function useTasks(cloudStorageInstance?: CloudStorage | null) {
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
     if (!cloudStorageInstance) {
       console.error('CloudStorage is not available');
-      return;
+      throw new Error('CloudStorage is not available');
     }
     
+    // Сохраняем исходное состояние для отката
+    let originalTask: Task | undefined;
     let updatedTasks: Task[] = [];
+    
     setTasks((prevTasks) => {
+      originalTask = prevTasks.find((t) => t.id === id);
       updatedTasks = prevTasks.map((task) =>
         task.id === id
           ? { ...task, ...updates, updatedAt: new Date().toISOString() }
@@ -85,6 +89,13 @@ export function useTasks(cloudStorageInstance?: CloudStorage | null) {
       await saveTasks(cloudStorageInstance, updatedTasks);
     } catch (error) {
       console.error('Failed to save tasks after update:', error);
+      // Откатываем изменение состояния при ошибке
+      if (originalTask) {
+        setTasks((prevTasks) =>
+          prevTasks.map((task) => (task.id === id ? originalTask! : task))
+        );
+      }
+      throw error;
     }
   }, [cloudStorageInstance]);
 
@@ -92,11 +103,15 @@ export function useTasks(cloudStorageInstance?: CloudStorage | null) {
   const deleteTask = useCallback(async (id: string) => {
     if (!cloudStorageInstance) {
       console.error('CloudStorage is not available');
-      return;
+      throw new Error('CloudStorage is not available');
     }
     
+    // Сохраняем исходное состояние для отката
+    let deletedTask: Task | undefined;
     let filteredTasks: Task[] = [];
+    
     setTasks((prevTasks) => {
+      deletedTask = prevTasks.find((t) => t.id === id);
       filteredTasks = prevTasks.filter((task) => task.id !== id);
       return filteredTasks;
     });
@@ -106,6 +121,11 @@ export function useTasks(cloudStorageInstance?: CloudStorage | null) {
       await saveTasks(cloudStorageInstance, filteredTasks);
     } catch (error) {
       console.error('Failed to save tasks after deletion:', error);
+      // Откатываем изменение состояния при ошибке
+      if (deletedTask) {
+        setTasks((prevTasks) => [...prevTasks, deletedTask!]);
+      }
+      throw error;
     }
   }, [cloudStorageInstance]);
 
@@ -113,14 +133,18 @@ export function useTasks(cloudStorageInstance?: CloudStorage | null) {
   const toggleTaskStatus = useCallback(async (id: string) => {
     if (!cloudStorageInstance) {
       console.error('CloudStorage is not available');
-      return;
+      throw new Error('CloudStorage is not available');
     }
     
+    // Сохраняем исходное состояние для отката
+    let originalTask: Task | undefined;
     let updatedTasks: Task[] = [];
+    
     setTasks((prevTasks) => {
       const task = prevTasks.find((t) => t.id === id);
       if (!task) return prevTasks;
       
+      originalTask = task;
       // Явно указываем тип статуса
       const newStatus: 'pending' | 'completed' = task.status === 'completed' ? 'pending' : 'completed';
       updatedTasks = prevTasks.map((t) =>
@@ -137,7 +161,13 @@ export function useTasks(cloudStorageInstance?: CloudStorage | null) {
         await saveTasks(cloudStorageInstance, updatedTasks);
       } catch (error) {
         console.error('Failed to save tasks after toggle:', error);
-        // Можно добавить откат состояния при ошибке
+        // Откатываем изменение состояния при ошибке
+        if (originalTask) {
+          setTasks((prevTasks) =>
+            prevTasks.map((t) => (t.id === id ? originalTask! : t))
+          );
+        }
+        throw error;
       }
     }
   }, [cloudStorageInstance]);

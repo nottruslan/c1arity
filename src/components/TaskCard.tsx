@@ -40,14 +40,34 @@ export function TaskCard({ task, onClick, onToggleStatus }: TaskCardProps) {
     <div
       className={`task-card ${task.status === 'completed' ? 'completed' : ''}`}
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      aria-label={`Задача: ${task.title}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
       <div className="task-card-header">
         <div
           className="task-checkbox"
+          role="checkbox"
+          aria-checked={task.status === 'completed'}
+          aria-label={task.status === 'completed' ? 'Отметить как невыполненную' : 'Отметить как выполненную'}
           onClick={(e) => {
             e.stopPropagation();
             onToggleStatus();
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleStatus();
+            }
+          }}
+          tabIndex={0}
         >
           {task.status === 'completed' && (
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
