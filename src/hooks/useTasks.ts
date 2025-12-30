@@ -46,7 +46,8 @@ export function useTasks() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    await saveTasksToStorage([...tasks, newTask]);
+    const updatedTasks = [...tasks, newTask];
+    await saveTasksToStorage(updatedTasks);
     return newTask;
   }, [tasks, saveTasksToStorage]);
 

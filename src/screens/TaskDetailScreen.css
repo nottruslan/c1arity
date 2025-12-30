@@ -28,7 +28,6 @@
   z-index: 1;
 }
 
-.task-detail-back-button,
 .task-detail-edit-button {
   width: 40px;
   height: 40px;
@@ -43,7 +42,6 @@
   transition: background 0.2s ease;
 }
 
-.task-detail-back-button:hover,
 .task-detail-edit-button:hover {
   background: rgba(33, 150, 243, 0.1);
 }
@@ -53,6 +51,8 @@
   font-weight: 600;
   color: #212121;
   margin: 0;
+  flex: 1;
+  text-align: center;
 }
 
 .task-detail-content {

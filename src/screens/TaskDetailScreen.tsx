@@ -55,17 +55,6 @@ export function TaskDetailScreen({ taskId, onBack, onEdit }: TaskDetailScreenPro
   return (
     <div className="task-detail-screen">
       <div className="task-detail-header">
-        <button className="task-detail-back-button" onClick={onBack}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M15 18L9 12L15 6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
         <h2 className="task-detail-title">Детали задачи</h2>
         <button className="task-detail-edit-button" onClick={onEdit}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

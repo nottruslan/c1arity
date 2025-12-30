@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { init, viewport } from '@tma.js/sdk';
+import { init, viewport, backButton } from '@tma.js/sdk';
 import { useNavigation } from './hooks/useNavigation';
 import { useTasks } from './hooks/useTasks';
 import { SlideContainer } from './components/SlideContainer';
@@ -16,29 +16,47 @@ function AppContent() {
   const [previousScreen, setPreviousScreen] = useState<Screen>('taskList');
 
   // Получаем safe area insets из viewport (учитывает системные элементы Telegram)
+  // Адаптируется для обоих режимов: fullscreen и partial
   useEffect(() => {
     const updateSafeArea = () => {
       try {
         const state = viewport.state();
-        if (state && state.contentSafeAreaInsets) {
-          // Используем contentSafeAreaInsets, который учитывает header и MainButton Telegram
-          const insets = state.contentSafeAreaInsets;
+        if (state) {
+          // Проверяем режим отображения
+          const isExpanded = state.isExpanded || false;
           
-          // Применяем CSS-переменные для использования в CSS
-          // Используем минимум 44px для header Telegram, если значение меньше
-          const topInset = Math.max(insets.top || 0, 44);
-          document.documentElement.style.setProperty('--tg-safe-area-inset-top', `${topInset}px`);
-          document.documentElement.style.setProperty('--tg-safe-area-inset-bottom', `${insets.bottom || 0}px`);
-          document.documentElement.style.setProperty('--tg-safe-area-inset-left', `${insets.left || 0}px`);
-          document.documentElement.style.setProperty('--tg-safe-area-inset-right', `${insets.right || 0}px`);
+          if (isExpanded) {
+            // Fullscreen режим - есть системный header Telegram
+            // Используем contentSafeAreaInsets, который учитывает header
+            const insets = state.contentSafeAreaInsets || { top: 0, bottom: 0, left: 0, right: 0 };
+            const topInset = Math.max(insets.top || 0, 44); // Минимум 44px для header
+            document.documentElement.style.setProperty('--tg-safe-area-inset-top', `${topInset}px`);
+            document.documentElement.style.setProperty('--tg-safe-area-inset-bottom', `${insets.bottom || 0}px`);
+            document.documentElement.style.setProperty('--tg-safe-area-inset-left', `${insets.left || 0}px`);
+            document.documentElement.style.setProperty('--tg-safe-area-inset-right', `${insets.right || 0}px`);
+          } else {
+            // Partial режим - нет системного header Telegram
+            // Используем только safeAreaInsets для физических вырезов экрана
+            const insets = state.safeAreaInsets || { top: 0, bottom: 0, left: 0, right: 0 };
+            document.documentElement.style.setProperty('--tg-safe-area-inset-top', `${insets.top || 0}px`);
+            document.documentElement.style.setProperty('--tg-safe-area-inset-bottom', `${insets.bottom || 0}px`);
+            document.documentElement.style.setProperty('--tg-safe-area-inset-left', `${insets.left || 0}px`);
+            document.documentElement.style.setProperty('--tg-safe-area-inset-right', `${insets.right || 0}px`);
+          }
         } else {
-          // Fallback: устанавливаем минимальный отступ для header Telegram
-          document.documentElement.style.setProperty('--tg-safe-area-inset-top', '44px');
+          // Fallback: устанавливаем нулевые отступы (для partial режима по умолчанию)
+          document.documentElement.style.setProperty('--tg-safe-area-inset-top', '0px');
+          document.documentElement.style.setProperty('--tg-safe-area-inset-bottom', '0px');
+          document.documentElement.style.setProperty('--tg-safe-area-inset-left', '0px');
+          document.documentElement.style.setProperty('--tg-safe-area-inset-right', '0px');
         }
       } catch (error) {
         console.warn('Viewport not available:', error);
-        // Fallback: устанавливаем минимальный отступ для header Telegram
-        document.documentElement.style.setProperty('--tg-safe-area-inset-top', '44px');
+        // Fallback: нулевые отступы для partial режима
+        document.documentElement.style.setProperty('--tg-safe-area-inset-top', '0px');
+        document.documentElement.style.setProperty('--tg-safe-area-inset-bottom', '0px');
+        document.documentElement.style.setProperty('--tg-safe-area-inset-left', '0px');
+        document.documentElement.style.setProperty('--tg-safe-area-inset-right', '0px');
       }
     };
 
@@ -46,7 +64,7 @@ function AppContent() {
     const timer = setTimeout(updateSafeArea, 100);
     updateSafeArea();
     
-    // Подписываемся на изменения safe area через подписку на state
+    // Подписываемся на изменения viewport (включая изменение режима isExpanded)
     try {
       const unsubscribe = viewport.state.sub(updateSafeArea);
       return () => {
@@ -105,6 +123,35 @@ function AppContent() {
   const handleBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
+
+  // Управление системной BackButton Telegram
+  useEffect(() => {
+    const currentScreen = navigation.currentScreen;
+    
+    // Показываем BackButton только если не на главном экране
+    if (currentScreen !== 'taskList') {
+      try {
+        backButton.show();
+        const unsubscribe = backButton.onClick(() => {
+          navigation.goBack();
+        });
+        return () => {
+          unsubscribe();
+          if (navigation.currentScreen === 'taskList') {
+            backButton.hide();
+          }
+        };
+      } catch (error) {
+        console.warn('BackButton not available:', error);
+      }
+    } else {
+      try {
+        backButton.hide();
+      } catch (error) {
+        console.warn('BackButton not available:', error);
+      }
+    }
+  }, [navigation.currentScreen, navigation]);
 
   return (
     <div className="app">

@@ -32,8 +32,9 @@ html, body {
   left: 0;
   right: 0;
   bottom: 0;
-  /* Поддержка safe area через CSS-переменные Telegram с fallback */
-  padding-top: var(--tg-safe-area-inset-top, 44px);
+  /* Поддержка safe area через CSS-переменные Telegram */
+  /* В fullscreen режиме будет отступ для header, в partial - только для физических вырезов */
+  padding-top: var(--tg-safe-area-inset-top, 0px);
   padding-bottom: var(--tg-safe-area-inset-bottom, 0px);
   padding-left: var(--tg-safe-area-inset-left, 0px);
   padding-right: var(--tg-safe-area-inset-right, 0px);

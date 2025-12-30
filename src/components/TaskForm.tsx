@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { backButton } from '@tma.js/sdk';
 import type { TaskPriority } from '../types/task';
 import './TaskForm.css';
 
@@ -20,24 +21,51 @@ interface TaskFormProps {
 
 export function TaskForm({ initialData, onSubmit, onCancel }: TaskFormProps) {
   const [step, setStep] = useState(1);
-  const [title, setTitle] = useState(initialData?.title || '');
-  const [description, setDescription] = useState(initialData?.description || '');
-  const [priority, setPriority] = useState<TaskPriority>(initialData?.priority || 'medium');
-  const [deadline, setDeadline] = useState(initialData?.deadline || '');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState<TaskPriority>('medium');
+  const [deadline, setDeadline] = useState('');
+
+  // Сброс формы при монтировании (для нового создания задачи)
+  useEffect(() => {
+    if (!initialData) {
+      setStep(1);
+      setTitle('');
+      setDescription('');
+      setPriority('medium');
+      setDeadline('');
+    } else {
+      setTitle(initialData.title || '');
+      setDescription(initialData.description || '');
+      setPriority(initialData.priority || 'medium');
+      setDeadline(initialData.deadline || '');
+    }
+  }, [initialData]);
+
+  // Обработка системной BackButton для формы
+  useEffect(() => {
+    try {
+      const unsubscribe = backButton.onClick(() => {
+        if (step > 1) {
+          setStep(step - 1);
+        } else {
+          // На первом шаге - закрываем форму
+          onCancel();
+        }
+      });
+      return () => {
+        unsubscribe();
+      };
+    } catch (error) {
+      console.warn('BackButton not available:', error);
+    }
+  }, [step, onCancel]);
 
   const handleNext = () => {
     if (step < 4) {
       setStep(step + 1);
     } else {
       handleSubmit();
-    }
-  };
-
-  const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    } else {
-      onCancel();
     }
   };
 
@@ -70,24 +98,12 @@ export function TaskForm({ initialData, onSubmit, onCancel }: TaskFormProps) {
   return (
     <div className="task-form">
       <div className="task-form-header">
-        <button className="task-form-back-button" onClick={handleBack}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M15 18L9 12L15 6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
         <h2 className="task-form-title">
           {step === 1 && 'Название'}
           {step === 2 && 'Описание'}
           {step === 3 && 'Приоритет'}
           {step === 4 && 'Дедлайн'}
         </h2>
-        <div className="task-form-spacer" />
       </div>
 
       <div className="task-form-content">

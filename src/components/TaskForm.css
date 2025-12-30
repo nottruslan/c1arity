@@ -9,7 +9,7 @@
 .task-form-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 16px;
   padding-top: 16px;
   border-bottom: 1px solid #e0e0e0;
@@ -18,33 +18,12 @@
   z-index: 1;
 }
 
-.task-form-back-button {
-  width: 40px;
-  height: 40px;
-  border: none;
-  background: transparent;
-  color: #2196F3;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background 0.2s ease;
-}
-
-.task-form-back-button:hover {
-  background: rgba(33, 150, 243, 0.1);
-}
-
 .task-form-title {
   font-size: 18px;
   font-weight: 600;
   color: #212121;
   margin: 0;
-}
-
-.task-form-spacer {
-  width: 40px;
+  text-align: center;
 }
 
 .task-form-content {
