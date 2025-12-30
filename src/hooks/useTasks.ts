@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { cloudStorage } from '@tma.js/sdk';
+import type { CloudStorage } from '@tma.js/sdk';
 import type { Task, TaskFilters, TaskSortBy, TaskSortOrder } from '../types/task';
 import { saveTasks, loadTasks } from '../lib/storage';
 
-export function useTasks() {
+export function useTasks(cloudStorageInstance?: CloudStorage | null) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<TaskFilters>({ status: 'all' });
@@ -12,8 +12,8 @@ export function useTasks() {
 
   // Загрузка задач при монтировании
   useEffect(() => {
-    if (cloudStorage) {
-      loadTasks(cloudStorage)
+    if (cloudStorageInstance) {
+      loadTasks(cloudStorageInstance)
         .then((loadedTasks) => {
           setTasks(loadedTasks);
           setLoading(false);
@@ -24,11 +24,11 @@ export function useTasks() {
     } else {
       setLoading(false);
     }
-  }, [cloudStorage]);
+  }, [cloudStorageInstance]);
 
   // Создание задачи - используем функциональное обновление состояния и ждем сохранения
   const createTask = useCallback(async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!cloudStorage) {
+    if (!cloudStorageInstance) {
       console.error('CloudStorage is not available');
       throw new Error('CloudStorage is not available');
     }
@@ -48,10 +48,10 @@ export function useTasks() {
       updatedTasks = [...prevTasks, newTask];
       return updatedTasks;
     });
-    
+
     // Ждем сохранения перед возвратом
     try {
-      await saveTasks(cloudStorage, updatedTasks);
+      await saveTasks(cloudStorageInstance, updatedTasks);
       console.log('Task created and saved successfully');
     } catch (error) {
       console.error('Failed to save task after creation:', error);
@@ -65,7 +65,7 @@ export function useTasks() {
 
   // Обновление задачи - используем функциональное обновление
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
-    if (!cloudStorage) {
+    if (!cloudStorageInstance) {
       console.error('CloudStorage is not available');
       return;
     }
@@ -82,7 +82,7 @@ export function useTasks() {
     
     // Сохраняем после обновления состояния
     try {
-      await saveTasks(cloudStorage, updatedTasks);
+      await saveTasks(cloudStorageInstance, updatedTasks);
     } catch (error) {
       console.error('Failed to save tasks after update:', error);
     }
@@ -90,7 +90,7 @@ export function useTasks() {
 
   // Удаление задачи - используем функциональное обновление
   const deleteTask = useCallback(async (id: string) => {
-    if (!cloudStorage) {
+    if (!cloudStorageInstance) {
       console.error('CloudStorage is not available');
       return;
     }
@@ -103,7 +103,7 @@ export function useTasks() {
     
     // Сохраняем после обновления состояния
     try {
-      await saveTasks(cloudStorage, filteredTasks);
+      await saveTasks(cloudStorageInstance, filteredTasks);
     } catch (error) {
       console.error('Failed to save tasks after deletion:', error);
     }
@@ -111,7 +111,7 @@ export function useTasks() {
 
   // Переключение статуса задачи
   const toggleTaskStatus = useCallback(async (id: string) => {
-    if (!cloudStorage) {
+    if (!cloudStorageInstance) {
       console.error('CloudStorage is not available');
       return;
     }
@@ -134,7 +134,7 @@ export function useTasks() {
     // Сохраняем после обновления состояния
     if (updatedTasks.length > 0) {
       try {
-        await saveTasks(cloudStorage, updatedTasks);
+        await saveTasks(cloudStorageInstance, updatedTasks);
       } catch (error) {
         console.error('Failed to save tasks after toggle:', error);
         // Можно добавить откат состояния при ошибке

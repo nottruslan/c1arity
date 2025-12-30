@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { init, viewport, backButton } from '@tma.js/sdk';
+import { init, backButton, viewport, cloudStorage } from '@tma.js/sdk';
 import { useNavigation } from './hooks/useNavigation';
 import { useTasks } from './hooks/useTasks';
 import { SlideContainer } from './components/SlideContainer';
@@ -11,10 +11,19 @@ import './App.css';
 
 function AppContent() {
   const navigation = useNavigation();
-  const { createTask } = useTasks();
+  const { createTask } = useTasks(cloudStorage);
   const [navigationDirection, setNavigationDirection] = useState<'forward' | 'backward'>('forward');
   const [previousScreen, setPreviousScreen] = useState<Screen>('taskList');
   const [taskFormStep, setTaskFormStep] = useState(1);
+
+  // Инициализация SDK единожды
+  useEffect(() => {
+    try {
+      init();
+    } catch (error) {
+      console.error('Failed to init TMA SDK', error);
+    }
+  }, []);
 
   // Получаем safe area insets из viewport (учитывает системные элементы Telegram)
   // Адаптируется для обоих режимов: fullscreen и partial
