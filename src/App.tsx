@@ -25,26 +25,37 @@ function AppContent() {
           const insets = state.contentSafeAreaInsets;
           
           // Применяем CSS-переменные для использования в CSS
-          document.documentElement.style.setProperty('--tg-safe-area-inset-top', `${insets.top || 0}px`);
+          // Используем минимум 44px для header Telegram, если значение меньше
+          const topInset = Math.max(insets.top || 0, 44);
+          document.documentElement.style.setProperty('--tg-safe-area-inset-top', `${topInset}px`);
           document.documentElement.style.setProperty('--tg-safe-area-inset-bottom', `${insets.bottom || 0}px`);
           document.documentElement.style.setProperty('--tg-safe-area-inset-left', `${insets.left || 0}px`);
           document.documentElement.style.setProperty('--tg-safe-area-inset-right', `${insets.right || 0}px`);
+        } else {
+          // Fallback: устанавливаем минимальный отступ для header Telegram
+          document.documentElement.style.setProperty('--tg-safe-area-inset-top', '44px');
         }
       } catch (error) {
         console.warn('Viewport not available:', error);
+        // Fallback: устанавливаем минимальный отступ для header Telegram
+        document.documentElement.style.setProperty('--tg-safe-area-inset-top', '44px');
       }
     };
 
+    // Небольшая задержка для инициализации viewport
+    const timer = setTimeout(updateSafeArea, 100);
     updateSafeArea();
     
     // Подписываемся на изменения safe area через подписку на state
     try {
       const unsubscribe = viewport.state.sub(updateSafeArea);
       return () => {
+        clearTimeout(timer);
         unsubscribe();
       };
     } catch (error) {
       console.warn('Viewport events not available:', error);
+      return () => clearTimeout(timer);
     }
   }, []);
 
