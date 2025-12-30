@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { TaskPriority } from '../types/task';
 import './TaskForm.css';
 
@@ -20,25 +20,28 @@ interface TaskFormProps {
   currentStep?: number;
 }
 
-export function TaskForm({ initialData, onSubmit, onCancel, onStepChange, currentStep }: TaskFormProps) {
+export function TaskForm({ initialData, onSubmit, onStepChange, currentStep }: TaskFormProps) {
   // Используем внешний currentStep если он передан, иначе внутреннее состояние
   const [internalStep, setInternalStep] = useState(1);
+  
+  // Определяем актуальный шаг - приоритет у внешнего currentStep
   const step = currentStep !== undefined ? currentStep : internalStep;
   
   // Синхронизация внешнего currentStep с внутренним состоянием
   useEffect(() => {
-    if (currentStep !== undefined && currentStep !== internalStep) {
+    if (currentStep !== undefined) {
       setInternalStep(currentStep);
     }
-  }, [currentStep, internalStep]);
+  }, [currentStep]);
   
   // Функция для изменения шага
-  const setStep = (newStep: number) => {
+  const setStep = useCallback((newStep: number) => {
     setInternalStep(newStep);
     if (onStepChange) {
       onStepChange(newStep);
     }
-  };
+  }, [onStepChange]);
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('medium');
@@ -47,7 +50,11 @@ export function TaskForm({ initialData, onSubmit, onCancel, onStepChange, curren
   // Сброс формы при монтировании (для нового создания задачи)
   useEffect(() => {
     if (!initialData) {
-      setStep(1);
+      const resetStep = 1;
+      setInternalStep(resetStep);
+      if (onStepChange) {
+        onStepChange(resetStep);
+      }
       setTitle('');
       setDescription('');
       setPriority('medium');
@@ -58,7 +65,7 @@ export function TaskForm({ initialData, onSubmit, onCancel, onStepChange, curren
       setPriority(initialData.priority || 'medium');
       setDeadline(initialData.deadline || '');
     }
-  }, [initialData]);
+  }, [initialData, onStepChange]);
 
   const handleNext = () => {
     if (step < 4) {

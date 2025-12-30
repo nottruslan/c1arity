@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { init, viewport, backButton } from '@tma.js/sdk';
 import { useNavigation } from './hooks/useNavigation';
 import { useTasks } from './hooks/useTasks';
@@ -126,6 +126,19 @@ function AppContent() {
     navigation.goBack();
   }, [navigation]);
 
+  // Используем ref для хранения актуальных значений
+  const navigationRef = useRef(navigation);
+  const taskFormStepRef = useRef(taskFormStep);
+  
+  // Обновляем refs при изменении
+  useEffect(() => {
+    navigationRef.current = navigation;
+  }, [navigation]);
+  
+  useEffect(() => {
+    taskFormStepRef.current = taskFormStep;
+  }, [taskFormStep]);
+
   // Управление системной BackButton Telegram
   useEffect(() => {
     const currentScreen = navigation.currentScreen;
@@ -136,25 +149,30 @@ function AppContent() {
         backButton.show();
         
         const handleBackClick = () => {
-          if (currentScreen === 'taskCreate') {
+          // Используем актуальные значения из refs
+          const screen = navigationRef.current.currentScreen;
+          const step = taskFormStepRef.current;
+          
+          if (screen === 'taskCreate') {
             // Если на экране создания задачи, обрабатываем шаги формы
-            if (taskFormStep > 1) {
+            if (step > 1) {
               // Возвращаемся на предыдущий шаг
-              setTaskFormStep(taskFormStep - 1);
+              setTaskFormStep(step - 1);
             } else {
               // На первом шаге - закрываем форму
-              navigation.goBack();
+              navigationRef.current.goBack();
             }
           } else {
             // Для других экранов - просто возвращаемся назад
-            navigation.goBack();
+            navigationRef.current.goBack();
           }
         };
         
         const unsubscribe = backButton.onClick(handleBackClick);
         return () => {
           unsubscribe();
-          if (navigation.currentScreen === 'taskList') {
+          // Проверяем актуальный экран при очистке
+          if (navigationRef.current.currentScreen === 'taskList') {
             backButton.hide();
           }
         };
@@ -170,7 +188,7 @@ function AppContent() {
         console.warn('BackButton not available:', error);
       }
     }
-  }, [navigation.currentScreen, navigation, taskFormStep]);
+  }, [navigation.currentScreen, taskFormStep]);
 
   return (
     <div className="app">

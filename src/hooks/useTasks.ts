@@ -26,24 +26,7 @@ export function useTasks() {
     }
   }, [cloudStorage]);
 
-  // Сохранение задач при изменении
-  const saveTasksToStorage = useCallback(async (tasksToSave: Task[]) => {
-    if (!cloudStorage) {
-      console.error('CloudStorage is not available');
-      throw new Error('CloudStorage is not available');
-    }
-    try {
-      console.log('Saving tasks to storage:', tasksToSave.length);
-      await saveTasks(cloudStorage, tasksToSave);
-      setTasks(tasksToSave);
-      console.log('Tasks saved successfully');
-    } catch (error) {
-      console.error('Failed to save tasks:', error);
-      throw error;
-    }
-  }, []);
-
-  // Создание задачи - используем функциональное обновление состояния
+  // Создание задачи - используем функциональное обновление состояния и ждем сохранения
   const createTask = useCallback(async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!cloudStorage) {
       console.error('CloudStorage is not available');
@@ -60,14 +43,22 @@ export function useTasks() {
     console.log('Creating new task:', newTask);
     
     // Используем функциональное обновление для получения актуального состояния
+    let updatedTasks: Task[] = [];
     setTasks((prevTasks) => {
-      const updatedTasks = [...prevTasks, newTask];
-      // Сохраняем асинхронно, но не ждем здесь
-      saveTasks(cloudStorage, updatedTasks).catch((error) => {
-        console.error('Failed to save tasks after creation:', error);
-      });
+      updatedTasks = [...prevTasks, newTask];
       return updatedTasks;
     });
+    
+    // Ждем сохранения перед возвратом
+    try {
+      await saveTasks(cloudStorage, updatedTasks);
+      console.log('Task created and saved successfully');
+    } catch (error) {
+      console.error('Failed to save task after creation:', error);
+      // Откатываем изменение состояния при ошибке
+      setTasks((prevTasks) => prevTasks.filter((t) => t.id !== newTask.id));
+      throw error;
+    }
     
     return newTask;
   }, []);
@@ -79,18 +70,22 @@ export function useTasks() {
       return;
     }
     
+    let updatedTasks: Task[] = [];
     setTasks((prevTasks) => {
-      const updatedTasks = prevTasks.map((task) =>
+      updatedTasks = prevTasks.map((task) =>
         task.id === id
           ? { ...task, ...updates, updatedAt: new Date().toISOString() }
           : task
       );
-      // Сохраняем асинхронно
-      saveTasks(cloudStorage, updatedTasks).catch((error) => {
-        console.error('Failed to save tasks after update:', error);
-      });
       return updatedTasks;
     });
+    
+    // Сохраняем после обновления состояния
+    try {
+      await saveTasks(cloudStorage, updatedTasks);
+    } catch (error) {
+      console.error('Failed to save tasks after update:', error);
+    }
   }, []);
 
   // Удаление задачи - используем функциональное обновление
@@ -100,14 +95,18 @@ export function useTasks() {
       return;
     }
     
+    let filteredTasks: Task[] = [];
     setTasks((prevTasks) => {
-      const filteredTasks = prevTasks.filter((task) => task.id !== id);
-      // Сохраняем асинхронно
-      saveTasks(cloudStorage, filteredTasks).catch((error) => {
-        console.error('Failed to save tasks after deletion:', error);
-      });
+      filteredTasks = prevTasks.filter((task) => task.id !== id);
       return filteredTasks;
     });
+    
+    // Сохраняем после обновления состояния
+    try {
+      await saveTasks(cloudStorage, filteredTasks);
+    } catch (error) {
+      console.error('Failed to save tasks after deletion:', error);
+    }
   }, []);
 
   // Переключение статуса задачи
@@ -117,21 +116,30 @@ export function useTasks() {
       return;
     }
     
+    let updatedTasks: Task[] = [];
     setTasks((prevTasks) => {
       const task = prevTasks.find((t) => t.id === id);
       if (!task) return prevTasks;
       
-      const updatedTasks = prevTasks.map((t) =>
+      // Явно указываем тип статуса
+      const newStatus: 'pending' | 'completed' = task.status === 'completed' ? 'pending' : 'completed';
+      updatedTasks = prevTasks.map((t) =>
         t.id === id
-          ? { ...t, status: t.status === 'completed' ? 'pending' : 'completed', updatedAt: new Date().toISOString() }
+          ? { ...t, status: newStatus, updatedAt: new Date().toISOString() }
           : t
       );
-      // Сохраняем асинхронно
-      saveTasks(cloudStorage, updatedTasks).catch((error) => {
-        console.error('Failed to save tasks after toggle:', error);
-      });
       return updatedTasks;
     });
+    
+    // Сохраняем после обновления состояния
+    if (updatedTasks.length > 0) {
+      try {
+        await saveTasks(cloudStorage, updatedTasks);
+      } catch (error) {
+        console.error('Failed to save tasks after toggle:', error);
+        // Можно добавить откат состояния при ошибке
+      }
+    }
   }, []);
 
   // Фильтрация и сортировка задач
