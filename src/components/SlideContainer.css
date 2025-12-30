@@ -1,0 +1,66 @@
+.slide-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  background-color: #ffffff;
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  /* Используем GPU ускорение */
+  transform: translateZ(0);
+  /* Предотвращаем мерцание */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.slide-container.forward {
+  transform: translate3d(100%, 0, 0);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.slide-container.backward {
+  transform: translate3d(-100%, 0, 0);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.slide-container.active {
+  transform: translate3d(0, 0, 0);
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/* Оптимизация для плавности анимаций на мобильных устройствах */
+@media (prefers-reduced-motion: no-preference) {
+  .slide-container {
+    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+  
+  /* Используем requestAnimationFrame для более плавных анимаций */
+  @supports (transform: translate3d(0, 0, 0)) {
+    .slide-container {
+      transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-container {
+    transition: transform 0.1s linear;
+  }
+}
+
+/* Оптимизация для высоких DPI экранов */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .slide-container {
+    -webkit-font-smoothing: antialiased;
+  }
+}
+

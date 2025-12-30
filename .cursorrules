@@ -1,0 +1,21 @@
+# Правила разработки Telegram Mini Apps
+
+При выполнении задач, связанных с Telegram Mini Apps, всегда используй следующие документации:
+
+1. **Официальная документация Telegram Mini Apps**
+   - https://core.telegram.org/bots/webapps
+
+2. **Awesome Telegram Mini Apps (UI-киты и ресурсы)**
+   - https://github.com/telegram-mini-apps-dev/awesome-telegram-mini-apps?tab=readme-ov-file#ui-kits
+
+3. **Руководство по созданию нового приложения**
+   - https://docs.telegram-mini-apps.com/platform/creating-new-app
+
+4. **TelegramUI (React-компоненты)**
+   - https://github.com/telegram-mini-apps-dev/TelegramUI
+
+5. **tma.js (TypeScript SDK)**
+   - https://github.com/Telegram-Mini-Apps/tma.js
+
+При разработке приложения всегда обращайся к этим источникам для получения актуальной информации о Telegram Mini Apps.
+
