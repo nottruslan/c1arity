@@ -14,6 +14,7 @@ function AppContent() {
   const { createTask } = useTasks();
   const [navigationDirection, setNavigationDirection] = useState<'forward' | 'backward'>('forward');
   const [previousScreen, setPreviousScreen] = useState<Screen>('taskList');
+  const [taskFormStep, setTaskFormStep] = useState(1);
 
   // Получаем safe area insets из viewport (учитывает системные элементы Telegram)
   // Адаптируется для обоих режимов: fullscreen и partial
@@ -94,6 +95,7 @@ function AppContent() {
   }, [navigation.currentScreen, previousScreen]);
 
   const handleCreateTask = useCallback(() => {
+    setTaskFormStep(1); // Сбрасываем шаг формы
     navigation.navigate('taskCreate');
   }, [navigation]);
 
@@ -132,9 +134,24 @@ function AppContent() {
     if (currentScreen !== 'taskList') {
       try {
         backButton.show();
-        const unsubscribe = backButton.onClick(() => {
-          navigation.goBack();
-        });
+        
+        const handleBackClick = () => {
+          if (currentScreen === 'taskCreate') {
+            // Если на экране создания задачи, обрабатываем шаги формы
+            if (taskFormStep > 1) {
+              // Возвращаемся на предыдущий шаг
+              setTaskFormStep(taskFormStep - 1);
+            } else {
+              // На первом шаге - закрываем форму
+              navigation.goBack();
+            }
+          } else {
+            // Для других экранов - просто возвращаемся назад
+            navigation.goBack();
+          }
+        };
+        
+        const unsubscribe = backButton.onClick(handleBackClick);
         return () => {
           unsubscribe();
           if (navigation.currentScreen === 'taskList') {
@@ -147,11 +164,13 @@ function AppContent() {
     } else {
       try {
         backButton.hide();
+        // Сбрасываем шаг формы при возврате на главный экран
+        setTaskFormStep(1);
       } catch (error) {
         console.warn('BackButton not available:', error);
       }
     }
-  }, [navigation.currentScreen, navigation]);
+  }, [navigation.currentScreen, navigation, taskFormStep]);
 
   return (
     <div className="app">
@@ -174,6 +193,8 @@ function AppContent() {
         <TaskCreateScreen
           onSave={handleSaveTask}
           onCancel={handleBack}
+          onStepChange={setTaskFormStep}
+          currentStep={taskFormStep}
         />
       </SlideContainer>
       

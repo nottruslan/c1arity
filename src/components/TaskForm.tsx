@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { backButton } from '@tma.js/sdk';
 import type { TaskPriority } from '../types/task';
 import './TaskForm.css';
 
@@ -17,10 +16,29 @@ interface TaskFormProps {
     deadline?: string;
   }) => void;
   onCancel: () => void;
+  onStepChange?: (step: number) => void;
+  currentStep?: number;
 }
 
-export function TaskForm({ initialData, onSubmit, onCancel }: TaskFormProps) {
-  const [step, setStep] = useState(1);
+export function TaskForm({ initialData, onSubmit, onCancel, onStepChange, currentStep }: TaskFormProps) {
+  // Используем внешний currentStep если он передан, иначе внутреннее состояние
+  const [internalStep, setInternalStep] = useState(1);
+  const step = currentStep !== undefined ? currentStep : internalStep;
+  
+  // Синхронизация внешнего currentStep с внутренним состоянием
+  useEffect(() => {
+    if (currentStep !== undefined && currentStep !== internalStep) {
+      setInternalStep(currentStep);
+    }
+  }, [currentStep, internalStep]);
+  
+  // Функция для изменения шага
+  const setStep = (newStep: number) => {
+    setInternalStep(newStep);
+    if (onStepChange) {
+      onStepChange(newStep);
+    }
+  };
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('medium');
@@ -41,25 +59,6 @@ export function TaskForm({ initialData, onSubmit, onCancel }: TaskFormProps) {
       setDeadline(initialData.deadline || '');
     }
   }, [initialData]);
-
-  // Обработка системной BackButton для формы
-  useEffect(() => {
-    try {
-      const unsubscribe = backButton.onClick(() => {
-        if (step > 1) {
-          setStep(step - 1);
-        } else {
-          // На первом шаге - закрываем форму
-          onCancel();
-        }
-      });
-      return () => {
-        unsubscribe();
-      };
-    } catch (error) {
-      console.warn('BackButton not available:', error);
-    }
-  }, [step, onCancel]);
 
   const handleNext = () => {
     if (step < 4) {

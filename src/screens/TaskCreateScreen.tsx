@@ -11,9 +11,11 @@ interface TaskCreateScreenProps {
     deadline?: string;
   }) => Promise<void>;
   onCancel: () => void;
+  onStepChange?: (step: number) => void;
+  currentStep?: number;
 }
 
-export function TaskCreateScreen({ onSave, onCancel }: TaskCreateScreenProps) {
+export function TaskCreateScreen({ onSave, onCancel, onStepChange, currentStep }: TaskCreateScreenProps) {
   // Используем key для полного сброса формы при каждом открытии
   const [formKey, setFormKey] = useState(0);
 
@@ -41,7 +43,9 @@ export function TaskCreateScreen({ onSave, onCancel }: TaskCreateScreenProps) {
       <TaskForm 
         key={formKey}
         onSubmit={handleSubmit} 
-        onCancel={onCancel} 
+        onCancel={onCancel}
+        onStepChange={onStepChange}
+        currentStep={currentStep}
       />
     </div>
   );
